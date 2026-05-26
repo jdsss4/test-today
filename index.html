@@ -1,15 +1,598 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title></title>
-	<style>
-		html{font-size: 4rem;}
-	</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>오늘의 날씨 - Weather Premium</title>
+  <!-- Google Fonts: Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-sunny: linear-gradient(135deg, #FF9933 0%, #FF5E62 100%);
+      --bg-cloudy: linear-gradient(135deg, #617ca6 0%, #2b3b54 100%);
+      --bg-rainy: linear-gradient(135deg, #1f4068 0%, #162447 100%);
+      
+      --card-bg: rgba(255, 255, 255, 0.12);
+      --card-border: rgba(255, 255, 255, 0.22);
+      --text-main: #ffffff;
+      --text-sub: rgba(255, 255, 255, 0.7);
+      
+      --transition-speed: 0.8s;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Outfit', 'Noto Sans KR', sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: var(--bg-sunny);
+      background-size: 400% 400%;
+      animation: gradientShift 15s ease infinite;
+      overflow: hidden;
+      padding: 20px;
+      transition: background var(--transition-speed) ease;
+    }
+
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* Glassmorphism Weather Container */
+    .weather-container {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 32px;
+      padding: 40px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+      color: var(--text-main);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .weather-container:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Header info */
+    .header {
+      margin-bottom: 30px;
+    }
+
+    .location-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .location-box svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+      animation: bounce 2s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-5px); }
+    }
+
+    .location {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .date {
+      font-size: 0.95rem;
+      color: var(--text-sub);
+      font-weight: 300;
+    }
+
+    /* Main Weather display */
+    .weather-display {
+      position: relative;
+      margin-bottom: 35px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .weather-icon-wrapper {
+      position: relative;
+      width: 150px;
+      height: 150px;
+      margin-bottom: 15px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* SVG Weather Icons and animations */
+    .icon-svg {
+      width: 120px;
+      height: 120px;
+      filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.2));
+      transition: all var(--transition-speed) cubic-bezier(0.34, 1.56, 0.64, 1);
+      position: absolute;
+      opacity: 0;
+      transform: scale(0.5) rotate(-45deg);
+    }
+
+    .icon-svg.active {
+      opacity: 1;
+      transform: scale(1) rotate(0deg);
+    }
+
+    /* Sunny Animation */
+    .sun-rays {
+      transform-origin: 50% 50%;
+      animation: spin 20s linear infinite;
+    }
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Cloud Animation */
+    .cloud-drift {
+      animation: float 4s ease-in-out infinite alternate;
+    }
+    @keyframes float {
+      0% { transform: translateY(0px) translateX(-2px); }
+      100% { transform: translateY(-5px) translateX(2px); }
+    }
+
+    /* Rain Animation */
+    .rain-drops line {
+      stroke-dasharray: 4 10;
+      animation: rainFall 0.8s linear infinite;
+    }
+    @keyframes rainFall {
+      0% { stroke-dashoffset: 0; }
+      100% { stroke-dashoffset: -20; }
+    }
+
+    .temp-container {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      margin-top: 10px;
+    }
+
+    .temp {
+      font-size: 5.5rem;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -2px;
+      background: linear-gradient(180deg, #FFFFFF 60%, rgba(255, 255, 255, 0.6) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .unit-toggle {
+      font-size: 1.8rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.8);
+      margin-top: 10px;
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.2s ease;
+      background: none;
+      border: none;
+      outline: none;
+    }
+    
+    .unit-toggle:hover {
+      color: #fff;
+    }
+
+    .condition {
+      font-size: 1.4rem;
+      font-weight: 500;
+      margin-top: 5px;
+      letter-spacing: 0.5px;
+    }
+
+    /* Details Grid */
+    .details-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      border-top: 1px solid var(--card-border);
+      padding-top: 30px;
+      margin-bottom: 30px;
+    }
+
+    .detail-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.3s ease, transform 0.3s ease;
+    }
+
+    .detail-card:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateY(-2px);
+    }
+
+    .detail-icon {
+      width: 24px;
+      height: 24px;
+      opacity: 0.8;
+      margin-bottom: 2px;
+    }
+
+    .detail-label {
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      font-weight: 400;
+    }
+
+    .detail-value {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    /* Actions/Controller */
+    .controller {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .btn-weather {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 50px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      backdrop-filter: blur(5px);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-weather:hover {
+      background: #fff;
+      color: #1e3c72;
+      transform: scale(1.05);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn-weather:active {
+      transform: scale(0.98);
+    }
+
+    .btn-weather svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+
+    /* Loading overlay */
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(10px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 32px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      z-index: 10;
+    }
+
+    .loading-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s ease-in-out infinite;
+    }
+  </style>
 </head>
 <body>
-	자 코드를 바꿔봅니다.
-	오늘의 테스트 코드입니다.
+
+  <div class="weather-container">
+    <!-- Loading overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="spinner"></div>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+      <div class="location-box">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+        </svg>
+        <span class="location" id="locText">서울시 마포구</span>
+      </div>
+      <div class="date" id="dateText">2026년 5월 26일 화요일</div>
+    </div>
+
+    <!-- Main display -->
+    <div class="weather-display">
+      <div class="weather-icon-wrapper">
+        <!-- Sunny Icon -->
+        <svg class="icon-svg active" id="icon-sunny" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="20" fill="#FFD700" />
+          <g class="sun-rays" stroke="#FFD700" stroke-width="6" stroke-linecap="round">
+            <line x1="50" y1="15" x2="50" y2="5" />
+            <line x1="50" y1="85" x2="50" y2="95" />
+            <line x1="15" y1="50" x2="5" y2="50" />
+            <line x1="85" y1="50" x2="95" y2="50" />
+            <line x1="25" y1="25" x2="18" y2="18" />
+            <line x1="75" y1="75" x2="82" y2="82" />
+            <line x1="75" y1="25" x2="82" y2="18" />
+            <line x1="25" y1="75" x2="18" y2="82" />
+          </g>
+        </svg>
+
+        <!-- Cloudy Icon -->
+        <svg class="icon-svg" id="icon-cloudy" viewBox="0 0 100 100">
+          <!-- Sun peeking -->
+          <circle cx="38" cy="38" r="14" fill="#FFA500" />
+          <g class="cloud-drift" fill="#ECEFF1">
+            <path d="M70,60a16,16,0,0,0-15.5-12,15.9,15.9,0,0,0-13.9,8A12,12,0,0,0,32,68c0,6.6,5.4,12,12,12H70a14,14,0,0,0,0-28Z" />
+          </g>
+        </svg>
+
+        <!-- Rainy Icon -->
+        <svg class="icon-svg" id="icon-rainy" viewBox="0 0 100 100">
+          <g class="cloud-drift" fill="#B0BEC5">
+            <path d="M70,50a16,16,0,0,0-15.5-12,15.9,15.9,0,0,0-13.9,8A12,12,0,0,0,32,58c0,6.6,5.4,12,12,12H70a14,14,0,0,0,0-28Z" />
+          </g>
+          <g class="rain-drops" stroke="#4FC3F7" stroke-width="3" stroke-linecap="round">
+            <line x1="42" y1="76" x2="38" y2="86" />
+            <line x1="54" y1="76" x2="50" y2="86" />
+            <line x1="66" y1="76" x2="62" y2="86" />
+          </g>
+        </svg>
+      </div>
+
+      <div class="temp-container">
+        <span class="temp" id="tempVal">24</span>
+        <button class="unit-toggle" id="unitBtn" title="단위 변경">°C</button>
+      </div>
+      <div class="condition" id="condText">맑음</div>
+    </div>
+
+    <!-- Details -->
+    <div class="details-grid">
+      <!-- Wind -->
+      <div class="detail-card">
+        <svg class="detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/>
+        </svg>
+        <span class="detail-label">바람</span>
+        <span class="detail-value" id="windText">2.1 m/s</span>
+      </div>
+      <!-- Humidity -->
+      <div class="detail-card">
+        <svg class="detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+        </svg>
+        <!-- Custom droplet shape via path -->
+        <svg class="detail-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12,2A8,8,0,0,0,4,10c0,4.42,3.58,8,8,8s8-3.58,8-8A8,8,0,0,0,12,2Zm0,14a6,6,0,0,1-6-6c0-3.31,6-9,6-9s6,5.69,6,9A6,6,0,0,1,12,16Z"/>
+        </svg>
+        <span class="detail-label">습도</span>
+        <span class="detail-value" id="humidText">45%</span>
+      </div>
+      <!-- UV Index -->
+      <div class="detail-card">
+        <svg class="detail-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 5.08a1 1 0 0 1-1-1V2.42a1 1 0 0 1 2 0v1.66a1 1 0 0 1-1 1zm0 13.84a1 1 0 0 1-1 1v1.66a1 1 0 0 1 2 0v-1.66a1 1 0 0 1-1-1zm8.84-7.92a1 1 0 0 1 0 2h-1.66a1 1 0 0 1 0-2zm-13.84 0a1 1 0 0 1 0 2H5.34a1 1 0 0 1 0-2zm12.51-6.15a1 1 0 0 1 0 1.42l-1.17 1.17a1 1 0 0 1-1.42-1.42l1.17-1.17a1 1 0 0 1 1.42 0zm-11.83 11.83a1 1 0 0 1 0 1.42l-1.17 1.17a1 1 0 0 1-1.42-1.42l1.17-1.17a1 1 0 0 1 1.42 0zm11.83 0a1 1 0 0 1-1.42 0l-1.17-1.17a1 1 0 0 1 1.42-1.42l1.17 1.17a1 1 0 0 1 0 1.42zm-11.83-11.83a1 1 0 0 1-1.42 0l-1.17-1.17a1 1 0 0 1 1.42-1.42l1.17 1.17a1 1 0 0 1 0 1.42zM12 8a4 4 0 1 0 4 4 4 4 0 0 0-4-4z"/>
+        </svg>
+        <span class="detail-label">자외선</span>
+        <span class="detail-value" id="uvText">보통 (4)</span>
+      </div>
+      <!-- Precipitation -->
+      <div class="detail-card">
+        <svg class="detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 17.58A5 5 0 0 0 18 8h-1.26A8 8 0 1 0 4 16.25"/>
+          <line x1="8" y1="16" x2="8" y2="20"/>
+          <line x1="12" y1="18" x2="12" y2="22"/>
+        </svg>
+        <span class="detail-label">강수확률</span>
+        <span class="detail-value" id="rainProbText">10%</span>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="controller">
+      <button class="btn-weather" id="refreshBtn">
+        <svg viewBox="0 0 24 24">
+          <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+        </svg>
+        날씨 업데이트
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // State management
+    const weatherStates = [
+      {
+        id: 'sunny',
+        condition: '맑음',
+        temp: 24,
+        wind: '2.1 m/s',
+        humidity: '45%',
+        uv: '보통 (4)',
+        rainProb: '10%',
+        bg: 'var(--bg-sunny)'
+      },
+      {
+        id: 'cloudy',
+        condition: '구름 많음',
+        temp: 19,
+        wind: '3.4 m/s',
+        humidity: '60%',
+        uv: '낮음 (2)',
+        rainProb: '25%',
+        bg: 'var(--bg-cloudy)'
+      },
+      {
+        id: 'rainy',
+        condition: '비 오는 중',
+        temp: 16,
+        wind: '5.2 m/s',
+        humidity: '85%',
+        uv: '낮음 (1)',
+        rainProb: '90%',
+        bg: 'var(--bg-rainy)'
+      }
+    ];
+
+    let currentStateIndex = 0;
+    let isCelsius = true;
+
+    // DOM Elements
+    const bodyEl = document.body;
+    const tempValEl = document.getElementById('tempVal');
+    const unitBtn = document.getElementById('unitBtn');
+    const condTextEl = document.getElementById('condText');
+    const windTextEl = document.getElementById('windText');
+    const humidTextEl = document.getElementById('humidText');
+    const uvTextEl = document.getElementById('uvText');
+    const rainProbTextEl = document.getElementById('rainProbText');
+    const dateTextEl = document.getElementById('dateText');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+
+    const icons = {
+      sunny: document.getElementById('icon-sunny'),
+      cloudy: document.getElementById('icon-cloudy'),
+      rainy: document.getElementById('icon-rainy')
+    };
+
+    // Update Date
+    function updateDate() {
+      const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+      const today = new Date();
+      dateTextEl.innerText = today.toLocaleDateString('ko-KR', options);
+    }
+
+    // Toggle unit function
+    function updateTemperatureDisplay() {
+      const currentTempC = weatherStates[currentStateIndex].temp;
+      if (isCelsius) {
+        tempValEl.innerText = currentTempC;
+        unitBtn.innerText = '°C';
+      } else {
+        const tempF = Math.round((currentTempC * 9/5) + 32);
+        tempValEl.innerText = tempF;
+        unitBtn.innerText = '°F';
+      }
+    }
+
+    // Apply Weather State
+    function applyWeatherState(state) {
+      // Background gradient transition
+      bodyEl.style.background = state.bg;
+      bodyEl.style.backgroundSize = "400% 400%";
+
+      // Condition text
+      condTextEl.innerText = state.condition;
+
+      // Details
+      windTextEl.innerText = state.wind;
+      humidTextEl.innerText = state.humidity;
+      uvTextEl.innerText = state.uv;
+      rainProbTextEl.innerText = state.rainProb;
+
+      // Icon transition
+      Object.keys(icons).forEach(key => {
+        if (key === state.id) {
+          icons[key].classList.add('active');
+        } else {
+          icons[key].classList.remove('active');
+        }
+      });
+
+      // Update temp value
+      updateTemperatureDisplay();
+    }
+
+    // Event Listeners
+    unitBtn.addEventListener('click', () => {
+      isCelsius = !isCelsius;
+      updateTemperatureDisplay();
+    });
+
+    refreshBtn.addEventListener('click', () => {
+      // Show loading overlay
+      loadingOverlay.classList.add('active');
+      
+      // Simulate API fetch delay
+      setTimeout(() => {
+        // Cycle states for demonstration
+        currentStateIndex = (currentStateIndex + 1) % weatherStates.length;
+        const state = weatherStates[currentStateIndex];
+        applyWeatherState(state);
+        
+        loadingOverlay.classList.remove('active');
+      }, 1000);
+    });
+
+    // Initialize
+    updateDate();
+    updateTemperatureDisplay();
+
+  </script>
 </body>
 </html>
